@@ -84,6 +84,44 @@ const messages = {
   },
 } as const
 
+const normalizeSearchText = (value: string): string =>
+  value
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const fuzzyScore = (query: string, candidate: string): number | null => {
+  const q = normalizeSearchText(query)
+  const c = normalizeSearchText(candidate)
+
+  if (!q || !c) return null
+  if (c.includes(q)) {
+    const start = c.indexOf(q)
+    const wordBoundaryBonus = start === 0 || c[start - 1] === ' ' ? 0.5 : 0
+    return 100 - start * 0.5 - (c.length - q.length) * 0.05 + wordBoundaryBonus
+  }
+
+  let lastIndex = -1
+  let firstMatch = -1
+  let contiguous = 0
+  let boundaryHits = 0
+
+  for (const ch of q) {
+    const index = c.indexOf(ch, lastIndex + 1)
+    if (index === -1) return null
+    if (firstMatch === -1) firstMatch = index
+    if (index === lastIndex + 1) contiguous += 1
+    if (index === 0 || c[index - 1] === ' ') boundaryHits += 1
+    lastIndex = index
+  }
+
+  const spread = lastIndex - firstMatch + 1
+  return q.length * 4 + contiguous * 1.5 + boundaryHits - (spread - q.length) * 0.35 - c.length * 0.02
+}
+
 export default function App() {
   const [symptoms, setSymptoms] = useState<Symptom[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -109,15 +147,18 @@ export default function App() {
   }, [locale, text.failedToLoadSymptoms])
 
   const filteredSymptoms = useMemo(() => {
-    const needle = query.trim().toLowerCase()
+    const needle = query.trim()
     if (!needle) return symptoms
-    return symptoms.filter(
-      (s) =>
-        s.code.includes(needle) ||
-        s.label.toLowerCase().includes(needle) ||
-        s.label_en.toLowerCase().includes(needle) ||
-        s.label_km.toLowerCase().includes(needle),
-    )
+
+    return symptoms
+      .map((symptom) => {
+        const candidates = [symptom.label, symptom.label_en, symptom.label_km, symptom.code]
+        const score = Math.max(...candidates.map((candidate) => fuzzyScore(needle, candidate) ?? -Infinity))
+        return { symptom, score }
+      })
+      .filter((item) => Number.isFinite(item.score))
+      .sort((a, b) => b.score - a.score || a.symptom.label.localeCompare(b.symptom.label))
+      .map((item) => item.symptom)
   }, [query, symptoms])
 
   const toggleSymptom = (code: string) => {
