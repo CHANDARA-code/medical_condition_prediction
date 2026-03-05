@@ -1,0 +1,10 @@
+npx vite --host 0.0.0.0 --port 5173
+
+uvicorn api.main:app --reload --port 2343 --host 0.0.0.0
+
+
+
+pm2 start "CORS_ALLOW_ORIGINS=http://161.97.114.68:5173,http://161.97.114.68:2343,https://predictlogistic.leavchandara.site MODEL_ARTIFACTS_DIR=/root/Document/aupp/assigment/assignment3/artifacts python3 -m uvicorn api.main:app --host 0.0.0.0 --port 2343" \
+  --name predict_api \
+  --cwd /root/Document/aupp/assigment/assignment3 \
+  --update-env
