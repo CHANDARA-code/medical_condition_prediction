@@ -60,8 +60,13 @@ uvicorn api.main:app --reload --port 8000
 
 API endpoints:
 - `GET /health`
-- `GET /symptoms`
-- `POST /predict`
+- `GET /symptoms?lang=en|km`
+- `POST /predict?lang=en|km`
+
+`/symptoms` returns localized labels with:
+- `label` (selected by `lang`)
+- `label_en`
+- `label_km`
 
 ### 4) Run web app
 
