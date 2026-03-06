@@ -85,3 +85,12 @@ User selects symptoms in React UI -> request to FastAPI `/predict` -> model arti
 ## Important note
 
 This is an educational prototype and **not** a clinical diagnosis system.
+
+
+## DEMO 
+
+
+
+https://github.com/user-attachments/assets/655b7d25-208e-4f6e-a4aa-000a80b7571d
+
+
